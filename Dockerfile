@@ -6,7 +6,7 @@ ARG ELIXIR_IMAGE=elixir:1.18-otp-27-alpine
 ARG RUNTIME_IMAGE=alpine:3.22
 
 # ---------- 1. SPA (Vue 3 + Vite) ----------
-FROM node:20-alpine AS web
+FROM node:25-alpine AS web
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
