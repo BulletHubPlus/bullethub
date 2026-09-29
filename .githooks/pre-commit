@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+# Roda o lab de pentest (.pentest) antes de cada commit.
+# - alvo padrao: http://localhost:4012 (banco isolado bullet_e2e, NUNCA o dev)
+# - se o alvo nao estiver no ar, pula sem bloquear
+# - se houver achado de seguranca, aborta o commit
+# - PENTEST_SKIP=1 git commit ... para ignorar pontualmente
+set -u
+[ "${PENTEST_SKIP:-0}" = "1" ] && exit 0
+
+ROOT="$(git rev-parse --show-toplevel)"
+BASE_URL="${PENTEST_BASE_URL:-http://localhost:4012}"
+
+if ! curl -sf -o /dev/null --max-time 3 "$BASE_URL/health" 2>/dev/null; then
+  echo "[pentest] alvo $BASE_URL fora do ar - pulando."
+  echo "[pentest] para gatear: cd backend && DB_NAME=bullet_e2e mix bullet.e2e.setup && DB_NAME=bullet_e2e PORT=4012 mix phx.server"
+  exit 0
+fi
+
+echo "[pentest] rodando probes contra $BASE_URL ..."
+fails=0
+for s in 01_recon 02_access_token 03_refresh_lifecycle 04_rate_limit \
+         05_authz_idor 06_mass_assignment 07_webhook_signature 08_headers_cors; do
+  BASE_URL="$BASE_URL" bash "$ROOT/.pentest/scripts/${s}.sh" >/tmp/pentest_${s}.log 2>&1 || {
+    fails=$((fails+1))
+    echo "[pentest] ACHADO em ${s}:"
+    grep '\[!!\]' "/tmp/pentest_${s}.log" | sed 's/^/    /'
+  }
+done
+
+if [ "$fails" -ne 0 ]; then
+  echo "[pentest] ${fails} script(s) com achado - commit abortado. Corrija, ou PENTEST_SKIP=1 git commit."
+  exit 1
+fi
+echo "[pentest] 0 achados."
+exit 0
