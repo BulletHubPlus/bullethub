@@ -187,7 +187,7 @@ jobs:
           tags: bullethub:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # pinned SHA, same as prostaff-api
+      - uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297 # pinned SHA, same as prostaff-api
         with:
           image-ref: bullethub:ci
           severity: CRITICAL,HIGH
