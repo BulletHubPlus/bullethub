@@ -1,0 +1,7 @@
+{
+  "name": "bullethub-admin-assets",
+  "private": true,
+  "dependencies": {
+    "tus-js-client": "^4.3.1"
+  }
+}

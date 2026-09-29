@@ -1,0 +1,199 @@
+/* See the Tailwind configuration guide for advanced usage
+   https://tailwindcss.com/docs/configuration */
+
+@import "tailwindcss" source(none);
+@source "../css";
+@source "../js";
+@source "../../lib/bullet_web";
+
+/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
+   The heroicons installation itself is managed by your mix.exs */
+@plugin "../vendor/heroicons";
+
+/* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
+   curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
+   Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
+@plugin "../vendor/daisyui" {
+  themes: false;
+}
+
+/* Single dark theme built from the bullethub/effront tokens (see frontend/src/styles/main.css). */
+@plugin "../vendor/daisyui-theme" {
+  name: "bullethub";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: #060606;
+  --color-base-200: #121212;
+  --color-base-300: #1c1c1c;
+  --color-base-content: #ffffff;
+  --color-primary: #f20024;
+  --color-primary-content: #ffffff;
+  --color-secondary: #2a2223;
+  --color-secondary-content: #ffffff;
+  --color-accent: #ff3b54;
+  --color-accent-content: #060606;
+  --color-neutral: #181818;
+  --color-neutral-content: #bcbcbc;
+  --color-info: #5b9dff;
+  --color-info-content: #060606;
+  --color-success: #3ecf8e;
+  --color-success-content: #060606;
+  --color-warning: #f5a524;
+  --color-warning-content: #060606;
+  --color-error: #ff3b54;
+  --color-error-content: #060606;
+  --radius-selector: 6px;
+  --radius-field: 6px;
+  --radius-box: 6px;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/Inter-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/BricolageGrotesque-Variable.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "Inter", sans-serif;
+  --color-hairline: #2a2223;
+  --color-faint: rgba(255, 255, 255, 0.42);
+  --color-muted: #bcbcbc;
+}
+
+@layer base {
+  body {
+    font-weight: 450;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: rgba(242, 0, 36, 0.12);
+    color: #ff3b54;
+  }
+}
+
+@layer components {
+  .wordmark {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  .wordmark .dot {
+    color: #f20024;
+  }
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #f20024;
+  }
+  .diamond {
+    width: 6px;
+    height: 6px;
+    background: #f20024;
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+  .sec-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.42);
+  }
+  .sec-label .idx {
+    color: #f20024;
+    font-variant-numeric: tabular-nums;
+  }
+  .sec-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, #2a2223, transparent);
+  }
+  .display {
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+  }
+  .glow-top {
+    position: relative;
+    isolation: isolate;
+  }
+  .glow-top::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 360px;
+    z-index: -1;
+    background: linear-gradient(180deg, rgba(242, 0, 36, 0.1) 0%, rgba(6, 6, 6, 0) 100%);
+    pointer-events: none;
+  }
+  .panel {
+    background: #121212;
+    border: 1px solid #2a2223;
+    border-radius: 6px;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+}
+
+/* effront-style primary: outline + faint fill on hover, never a solid red flood.
+   Unlayered + daisyUI's own --btn-* variables so it beats the .btn component. */
+.btn-accent-outline {
+  --btn-bg: transparent;
+  --btn-fg: #ff3b54;
+  --btn-border: rgba(242, 0, 36, 0.55);
+  --btn-shadow: none;
+  --btn-noise: none;
+}
+.btn-accent-outline:hover:not(:disabled) {
+  --btn-bg: rgba(242, 0, 36, 0.12);
+  --btn-border: #f20024;
+}
+
+/* Add variants based on LiveView classes */
+@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+
+/* Use the data attribute for dark mode  */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Make LiveView wrapper divs transparent for layout */
+[data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* This file is for your main application CSS */

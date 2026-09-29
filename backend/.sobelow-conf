@@ -1,0 +1,8 @@
+[
+  router: "lib/bullet_web/router.ex",
+  # HTTPS is enforced via force_ssl in runtime.exs (TLS terminates at Traefik).
+  ignore: ["Config.HTTPS"],
+  exit: "low",
+  # Honor inline `# sobelow_skip` annotations (each one carries a justification).
+  skip: true
+]
