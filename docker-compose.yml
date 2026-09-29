@@ -1,0 +1,82 @@
+# Coolify deployment (same pattern as prostaff-events): Coolify builds this
+# repo, Traefik terminates TLS (Let's Encrypt) and routes both hosts to one
+# Phoenix release. Postgres 16 is a separate Coolify resource (with scheduled
+# S3 backups) reached through DATABASE_URL on the coolify network.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "4000"
+    networks:
+      - coolify
+    environment:
+      PHX_HOST: '${PHX_HOST:-bullethub.app}'
+      ADMIN_HOST: '${ADMIN_HOST:-admin.bullethub.app}'
+      PORT: '4000'
+      POOL_SIZE: '${POOL_SIZE:-10}'
+      DATABASE_URL: '${DATABASE_URL:?required}'
+      SECRET_KEY_BASE: '${SECRET_KEY_BASE:?required}'
+      CLOAK_KEY: '${CLOAK_KEY:?required}'
+      CPF_HMAC_KEY: '${CPF_HMAC_KEY:?required}'
+      BUNNY_LIBRARY_ID: '${BUNNY_LIBRARY_ID:?required}'
+      BUNNY_API_KEY: '${BUNNY_API_KEY:?required}'
+      BUNNY_EMBED_TOKEN_KEY: '${BUNNY_EMBED_TOKEN_KEY:?required}'
+      BUNNY_READONLY_API_KEY: '${BUNNY_READONLY_API_KEY:?required}'
+      BUNNY_CDN_HOSTNAME: '${BUNNY_CDN_HOSTNAME:?required}'
+      RESEND_API_KEY: '${RESEND_API_KEY:?required}'
+      MAIL_FROM: '${MAIL_FROM:-no-reply@bullethub.app}'
+    restart: unless-stopped
+    # BEAM + 10k sockets target (RNF04) fit well under this on a CX32.
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    labels:
+      - coolify.managed=true
+      - coolify.type=application
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+
+      # HTTPS: apex (SPA + API + WebSocket) and admin (LiveView)
+      - traefik.http.routers.bullethub.rule=Host(`bullethub.app`) || Host(`admin.bullethub.app`)
+      - traefik.http.routers.bullethub.entrypoints=https
+      - traefik.http.routers.bullethub.tls=true
+      - traefik.http.routers.bullethub.tls.certresolver=letsencrypt
+      - traefik.http.routers.bullethub.service=bullethub
+      - traefik.http.services.bullethub.loadbalancer.server.port=4000
+      - traefik.http.services.bullethub.loadbalancer.server.scheme=http
+
+      # www → apex
+      - traefik.http.routers.bullethub-www.rule=Host(`www.bullethub.app`)
+      - traefik.http.routers.bullethub-www.entrypoints=https
+      - traefik.http.routers.bullethub-www.tls=true
+      - traefik.http.routers.bullethub-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.bullethub-www.middlewares=bullethub-www-redirect
+      - traefik.http.routers.bullethub-www.service=bullethub
+      - traefik.http.middlewares.bullethub-www-redirect.redirectregex.regex=^https://www\.bullethub\.app/(.*)
+      - traefik.http.middlewares.bullethub-www-redirect.redirectregex.replacement=https://bullethub.app/$${1}
+      - traefik.http.middlewares.bullethub-www-redirect.redirectregex.permanent=true
+
+      # HTTP → HTTPS
+      - traefik.http.routers.bullethub-http.rule=Host(`bullethub.app`) || Host(`admin.bullethub.app`) || Host(`www.bullethub.app`)
+      - traefik.http.routers.bullethub-http.entrypoints=http
+      - traefik.http.routers.bullethub-http.middlewares=bullethub-redirect-https
+      - traefik.http.routers.bullethub-http.service=bullethub
+      - traefik.http.middlewares.bullethub-redirect-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.bullethub-redirect-https.redirectscheme.permanent=true
+
+networks:
+  coolify:
+    external: true

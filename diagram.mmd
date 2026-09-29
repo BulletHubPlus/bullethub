@@ -1,0 +1,132 @@
+---
+title: bullethub - Arquitetura
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: NETWORK_SIMPLEX
+---
+flowchart TB
+    %% ---------- 1. Cliente ----------
+    subgraph L1["1 · Cliente"]
+        direction LR
+        SPA["Vue 3 SPA / PWA<br/>bullethub.app"]
+        ADMIN["Admin LiveView<br/>admin.bullethub.app"]
+    end
+
+    %% ---------- 2. Edge / Infra ----------
+    subgraph L2["2 · Edge / Infra"]
+        direction LR
+        CF["Cloudflare<br/>DNS + proxy"] --> TRAEFIK["Traefik<br/>TLS · routing"] --> ENDPOINT["Phoenix.Endpoint<br/>Bandit · serve o SPA · 1 nó"]
+    end
+
+    %% ---------- 3. Web Gateway ----------
+    subgraph L3["3 · Web Gateway · plugs"]
+        direction TB
+        REMOTEIP["RemoteIp<br/>XFF só do proxy"] --> RATELIMIT["RateLimit<br/>Hammer/ETS"] --> ROUTER["Router"]
+        ROUTER --> AUTH["RequireAuth<br/>Bearer 15 min"]
+        ROUTER --> CACHEBODY["CacheBodyReader<br/>corpo cru p/ HMAC"]
+    end
+
+    %% ---------- 4. Bounded Contexts ----------
+    subgraph L4["4 · Bounded Contexts · lib/bullet"]
+        direction TB
+        ACCOUNTS["Accounts<br/>contas · sessões · dispositivos · LGPD"]
+        BILLING["Billing<br/>planos · assinaturas"]
+        CATALOG["Catalog<br/>collection→season→media · gêneros · legendas"]
+        INGEST["Ingest<br/>upload TUS · máquina de estados · webhook"]
+        PLAYBACK["Playback<br/>sessões · progresso · watermark · autoplay"]
+        SECURITY["Security<br/>auditoria · PlaybackToken (assinatura pura)"]
+        SUPPORT["Support<br/>busca: e-mail · id · código watermark"]
+        PROVIDER["Media.Provider · Behaviour<br/>Bunny (prod) / Fake (dev·test)"]
+    end
+
+    %% ---------- 5. Realtime ----------
+    subgraph L5["5 · Realtime · Channels"]
+        direction TB
+        SOCKET["UserSocket<br/>auth via Sec-WebSocket-Protocol"]
+        UCH["user:&lt;id&gt;<br/>progresso · device_revoked"]
+        PCH["playback:&lt;session&gt;<br/>heartbeat · progresso · watermark"]
+        PRESENCE["Presence<br/>limite de telas · CRDT · sem Redis"]
+        SOCKET --> UCH
+        SOCKET --> PCH --> PRESENCE
+    end
+
+    %% ---------- 6. Jobs ----------
+    subgraph L6["6 · Oban / GenServers"]
+        direction TB
+        JMAIL["DeliverUserEmail"]
+        JWEBHOOK["ProcessWebhookEvent"]
+        JPOLL["AssetStatusPoller · 10 min"]
+        JPRUNE["PruneTokens / PurgeExpired · LGPD"]
+        REAPER["SessionReaper · 30 s"]
+    end
+
+    %% ---------- 7. Dados ----------
+    subgraph L7["7 · Dados"]
+        direction LR
+        VAULT["Cloak Vault<br/>CPF AES-GCM"] --> PG[("PostgreSQL 16<br/>UUID v7 · Ecto")]
+    end
+
+    %% ---------- 8. Externos ----------
+    subgraph L8["8 · Externos"]
+        direction LR
+        BUNNY["Bunny Stream<br/>TUS · embed · CDN · webhook"]
+        RESEND["Resend<br/>e-mail transacional"]
+    end
+
+    %% ---------- Fluxo ----------
+    SPA --> CF
+    ADMIN --> CF
+    ENDPOINT --> REMOTEIP
+    AUTH --> ACCOUNTS
+    AUTH --> BILLING
+    AUTH --> CATALOG
+    AUTH --> PLAYBACK
+    ADMIN -. LiveView .-> INGEST
+    ADMIN -. LiveView .-> SUPPORT
+
+    %% Realtime
+    ROUTER --> SOCKET
+    PCH <--> PLAYBACK
+    ACCOUNTS -->|device_revoked| UCH
+    PLAYBACK -->|session_terminated| PCH
+
+    %% Contextos → dados
+    ACCOUNTS --> VAULT
+    ACCOUNTS --> PG
+    CATALOG --> PG
+    INGEST --> PG
+    PLAYBACK --> PG
+    SECURITY --> PG
+    BILLING --> PG
+    SUPPORT --> PG
+
+    %% Mídia: o vídeo nunca passa pelo app server
+    SPA == vídeo direto na CDN ==> BUNNY
+    SPA == upload TUS ==> BUNNY
+    SECURITY -. assina embed/TUS .-> PROVIDER --> BUNNY
+    BUNNY -->|POST /webhooks/bunny + HMAC| CACHEBODY --> INGEST
+    INGEST --> JWEBHOOK --> INGEST
+    JPOLL -. reconcilia .-> PROVIDER
+
+    %% Jobs
+    ACCOUNTS --> JMAIL --> RESEND
+    JPRUNE --> PG
+    REAPER --> PLAYBACK
+
+    %% ---------- Estilos ----------
+    classDef client fill:#f20024,color:#fff,stroke:#8f0510;
+    classDef infra fill:#1d63ed,color:#fff,stroke:#0b3aa8;
+    classDef ctx fill:#1b1030,color:#fff,stroke:#4b275f;
+    classDef rt fill:#0596aa,color:#fff,stroke:#036475;
+    classDef job fill:#b1003e,color:#fff,stroke:#6e0026;
+    classDef data fill:#336791,color:#fff,stroke:#20456b;
+    classDef ext fill:#ff7a00,color:#fff,stroke:#b35600;
+
+    class SPA,ADMIN client;
+    class CF,TRAEFIK,ENDPOINT infra;
+    class ACCOUNTS,BILLING,CATALOG,INGEST,PLAYBACK,SECURITY,SUPPORT,PROVIDER ctx;
+    class SOCKET,UCH,PCH,PRESENCE rt;
+    class JMAIL,JWEBHOOK,JPOLL,JPRUNE,REAPER job;
+    class PG,VAULT data;
+    class BUNNY,RESEND ext;

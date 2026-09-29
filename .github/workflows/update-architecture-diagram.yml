@@ -1,0 +1,36 @@
+name: Update Architecture Diagram
+
+# Valida o diagram.mmd (renderização Mermaid) sempre que o backend muda, e
+# publica um PNG como artifact. O .mmd em si é mantido à mão (fonte da verdade).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/lib/**'
+      - 'diagram.mmd'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/lib/**'
+      - 'diagram.mmd'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-diagram:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Render Mermaid (falha se a sintaxe quebrar)
+        run: |
+          npx --yes @mermaid-js/mermaid-cli@11 -i diagram.mmd -o diagram.png -b '#060606'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: architecture-diagram
+          path: diagram.png
+          retention-days: 30

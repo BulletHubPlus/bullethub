@@ -1,0 +1,50 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# Elixir
+backend/_build/
+backend/deps/
+backend/cover/
+backend/priv/plts/
+backend/priv/static/assets/
+backend/priv/static/app/
+backend/priv/static/cache_manifest.json
+backend/*.ez
+backend/erl_crash.dump
+backend/tmp/
+.elixir_ls/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/node_modules/.tmp/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+backend/assets/node_modules/
+backend/priv/static/dev/
+
+# agent local overrides
+.claude/settings.local.json
+
+# rendered architecture diagram (source: diagram.mmd)
+diagram.png
+
+# arte de terceiros (placeholders - substituir por arte licenciada/original)
+public/BulletFlixBKGROUND.png
+public/capas/
+backend/priv/static/images/crossing-lines/
+
+# artefatos de teste (e2e / pentest)
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+.pentest/snapshots/
+**/node_modules/
+
+# demo local

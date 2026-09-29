@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in */backend/*.ex|*/backend/*.exs|*/backend/*.heex) ( cd \"${f%%/backend/*}/backend\" && mise exec -- mix format \"$f\" ) >/dev/null 2>&1 || true ;; esac",
+            "timeout": 30,
+            "statusMessage": "mix format..."
+          }
+        ]
+      }
+    ]
+  }
+}

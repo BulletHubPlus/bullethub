@@ -1,0 +1,45 @@
+name: Deploy to Production
+
+# Same flow as prostaff-api: semver tag → full CI → manual approval → Coolify.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy via Coolify
+    needs: ci
+    runs-on: ubuntu-latest
+    # Configure required reviewers on this environment in GitHub settings.
+    environment:
+      name: production
+      url: https://bullethub.app
+    steps:
+      - name: Trigger Coolify deployment
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          curl -fsS --retry 3 -H "Authorization: Bearer ${COOLIFY_TOKEN}" "${COOLIFY_WEBHOOK}"
+
+      - name: Wait for the new release to be healthy
+        run: |
+          for i in $(seq 1 40); do
+            if curl -fsS https://bullethub.app/health | grep -q '"status":"ok"'; then
+              echo "healthy"; exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::bullethub.app/health did not become healthy in 10 min"
+          exit 1

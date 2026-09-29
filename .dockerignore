@@ -1,0 +1,15 @@
+.git
+.github
+devdocs
+public
+**/node_modules
+**/.env*
+backend/_build
+backend/deps
+backend/priv/static/app
+backend/priv/static/assets
+backend/priv/plts
+backend/cover
+backend/test
+frontend/dist
+backend/priv/static/dev
