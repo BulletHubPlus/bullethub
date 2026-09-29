@@ -27,6 +27,8 @@ export default defineConfig(({ command }) => ({
       '/health': `http://${backend}`,
       // Dev-only Phoenix routes: sample video (Fake provider) and the Swoosh mailbox.
       '/dev': `http://${backend}`,
+      // Dev-only proxy to the local Phoenix server (loopback); wss is not applicable here.
+      // nosemgrep: javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket
       '/socket': { target: `ws://${backend}`, ws: true },
     },
   },
