@@ -21,7 +21,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^20.19.43",
     "@types/phoenix": "^1.6.7",
-    "@vitejs/plugin-vue": "^5.2.3",
+    "@vitejs/plugin-vue": "^6.0.9",
     "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.7.0",
     "jsdom": "^29.1.1",
